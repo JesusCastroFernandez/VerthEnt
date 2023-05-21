@@ -1,0 +1,49 @@
+from qiskit import QuantumCircuit, Aer, execute
+import numpy as np
+
+def quantum_nonconvex_optimization(cost_function, num_iterations):
+    num_qubits = len(cost_function)
+    qr = QuantumRegister(num_qubits)
+    cr = ClassicalRegister(num_qubits)
+    qc = QuantumCircuit(qr, cr)
+
+    # Inicialización del estado cuántico
+    qc.h(qr)
+
+    for _ in range(num_iterations):
+        # Aplicar la función de costo cuántica
+        qc.barrier()
+        for i, cost in enumerate(cost_function):
+            qc.rz(2 * cost, qr[i])
+        qc.barrier()
+
+        # Aplicar el operador de inversión sobre la media
+        qc.h(qr)
+        qc.x(qr)
+        qc.cz(qr[0], qr[1])
+        qc.x(qr)
+        qc.h(qr)
+
+    qc.measure(qr, cr)
+
+    # Ejecutar el circuito en un simulador cuántico
+    simulator = Aer.get_backend('qasm_simulator')
+    job = execute(qc, simulator, shots=1)
+    result = job.result()
+    counts = result.get_counts(qc)
+    bitstring = list(counts.keys())[0]
+
+    # Obtener el resultado de la optimización cuántica
+    optimized_params = np.array([int(bit) for bit in bitstring])
+
+    return optimized_params
+
+# Función de costo de ejemplo
+def cost_function(params):
+    return params[0]**2 + params[1]**2
+
+# Realizar la optimización cuántica no convexa
+optimized_params = quantum_nonconvex_optimization(cost_function, num_iterations=100)
+
+# Imprimir el resultado de la optimización
+print("Optimized parameters:", optimized_params)
